@@ -49,6 +49,14 @@ body.pronto .linha>span{transform:none}
 #hudLocal{display:none}
 .heroi-conteudo,.heroi-trilha{z-index:2}
 
+/* vídeos */
+.heroi-fundo video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity 1.2s ease,transform 9s linear}
+.heroi-fundo video.ativa{opacity:1;transform:scale(1)}
+.fase-img .previa{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s ease}
+.fase-img.tocando .previa{opacity:1}
+.fase-img::before{content:"\25B6  PRÉVIA";position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);font:500 .7rem var(--f-mono);letter-spacing:.2em;padding:.6em 1em;border-radius:999px;background:rgba(5,7,15,.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);opacity:0;transition:opacity .3s;pointer-events:none}
+@media (hover:hover){.fase-img:not(.tocando):hover::before{opacity:1}}
+
 /* faixa rolando */
 .faixa{overflow:hidden;border-bottom:1px solid var(--linha);padding:1.1rem 0;-webkit-mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
 .faixa-trilho{display:flex;width:max-content;animation:faixa 45s linear infinite}

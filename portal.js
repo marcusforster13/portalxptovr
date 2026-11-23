@@ -16,28 +16,36 @@
   /* herói: cenários alternando */
   const fundo = $('#heroiFundo'), trilha = $('#heroiTrilha');
   const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const DUR = 6000;
+  const DUR = 8000;               // os clipes têm 8 s
+  const celular = innerWidth < 820;
+  const vid = (id, sm) => `video/${id}${sm ? '-sm' : ''}.mp4`;
   let atual = -1, timer;
   F.forEach((f, i) => {
-    const im = el('img'); im.alt = ''; im.decoding = 'async';
-    im.src = innerWidth < 820 ? img(f.id, 0, true) : img(f.id, 0);
-    if (i) im.loading = 'lazy';
-    fundo.append(im);
+    const v = el('video'); v.muted = true; v.playsInline = true; v.loop = true; v.preload = 'none';
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
+    v.poster = `video/${f.id}-capa.webp`;
+    v.dataset.src = vid(f.id, celular);
+    fundo.append(v);
     const b = el('button', 'trilha-it', `<b>${esc(f.titulo)}</b>${esc(f.tema)}`);
     b.setAttribute('role', 'tab'); b.style.setProperty('--dur', DUR + 'ms');
     b.onclick = () => mostrar(i, true);
     trilha.append(b);
   });
+  const tocar = v => { if (reduzido) return; if (!v.src) v.src = v.dataset.src; v.currentTime = 0; v.play().catch(() => { }); };
   function mostrar(i, manual) {
     if (i === atual) return;
     atual = i;
     const hf = $('#hudFase'), hl = $('#hudLocal');
     if (hf) { hf.textContent = `FASE ${F[i].n} · ${F[i].titulo.toUpperCase()}`; hl.textContent = F[i].local.toUpperCase(); }
-    fundo.querySelectorAll('img').forEach((im, k) => im.classList.toggle('ativa', k === i));
+    const vs = fundo.querySelectorAll('video');
+    vs.forEach((v, k) => { v.classList.toggle('ativa', k === i); if (k !== i) setTimeout(() => { if (!v.classList.contains('ativa')) v.pause(); }, 1500); });
+    tocar(vs[i]);
+    const prox = vs[(i + 1) % F.length]; if (!prox.src && !reduzido) { prox.preload = 'auto'; prox.src = prox.dataset.src; }   // já baixa o próximo
     trilha.querySelectorAll('.trilha-it').forEach((b, k) => { b.classList.remove('ativa'); b.setAttribute('aria-selected', k === i); if (k === i) { void b.offsetWidth; b.classList.add('ativa'); } });
     clearTimeout(timer);
     if (!reduzido) timer = setTimeout(() => mostrar((atual + 1) % F.length), DUR);
   }
+  document.addEventListener('visibilitychange', () => { const v = fundo.querySelectorAll('video')[atual]; if (!v) return; document.hidden ? v.pause() : v.play().catch(() => { }); });
   mostrar(4); // começa pela escola
 
   /* cartões: seleção de missão */
@@ -51,6 +59,7 @@
         <span class="fase-n">FASE ${f.n}</span>
         <span class="fase-periodo">${icone(f.periodo)}${f.periodo.toUpperCase()}</span>
         <img class="principal" src="${img(f.id, 0, true)}" srcset="${img(f.id, 0, true)} 800w, ${img(f.id, 0)} 1600w" sizes="(max-width:900px) 100vw, 760px" alt="${esc(f.titulo)}: ${esc(f.local)}" loading="lazy" decoding="async">
+        <video class="previa" muted playsinline loop preload="none" aria-hidden="true" data-src="${vid(f.id, true)}"></video>
         <span class="brilho"></span>
         <span class="cantos"><i></i><i></i><i></i><i></i></span>
         <div class="minis">${[0, 1, 2, 3].map(k => `<button data-foto="${k}" aria-label="Ver foto ${k + 1}"${k ? '' : ' class="ativa"'}><img src="${img(f.id, k, true)}" alt="" loading="lazy"></button>`).join('')}</div>
@@ -81,6 +90,19 @@
     const b = e.target.closest('.minis button'); if (b) { e.stopPropagation(); trocaFoto(b); return; }
     const a = e.target.closest('[data-abrir]'); if (a) abrir(a.dataset.abrir);
   });
+  // vídeo do cartão: no mouse (computador) ou quando aparece na tela (celular)
+  const ligar = (fi, sim) => { const v = fi.querySelector('.previa'); if (reduzido) return; if (sim) { if (!v.src) v.src = v.dataset.src; v.play().then(() => fi.classList.add('tocando')).catch(() => { }); } else { fi.classList.remove('tocando'); v.pause(); } };
+  if (matchMedia('(hover:hover)').matches) {
+    lista.querySelectorAll('.fase-img').forEach(fi => {
+      fi.addEventListener('mouseenter', () => ligar(fi, true));
+      fi.addEventListener('mouseleave', () => ligar(fi, false));
+      fi.querySelector('.minis').addEventListener('mouseenter', () => ligar(fi, false));
+      fi.querySelector('.minis').addEventListener('mouseleave', () => ligar(fi, true));
+    });
+  } else if ('IntersectionObserver' in window) {
+    const ov = new IntersectionObserver(es => es.forEach(x => ligar(x.target, x.intersectionRatio > .6)), { threshold: [0, .6, 1] });
+    lista.querySelectorAll('.fase-img').forEach(fi => ov.observe(fi));
+  }
   // inclinação 3D e brilho que seguem o mouse
   if (matchMedia('(hover:hover)').matches && !reduzido) {
     lista.querySelectorAll('.fase-img').forEach(fi => {
@@ -171,7 +193,7 @@
   };
 
   /* abertura: some quando a capa carregou (no máximo 2,2 s) */
-  const capa = fundo.querySelectorAll('img')[atual];
+  const capa = new Image(); capa.src = `video/${F[atual].id}-capa.webp`;
   const liberar = () => { if (!document.body.classList.contains('carregando')) return; document.body.classList.remove('carregando'); setTimeout(() => document.body.classList.add('pronto'), 250); };
   Promise.all([new Promise(r => setTimeout(r, 1150)), capa.decode ? capa.decode().catch(() => { }) : Promise.resolve()]).then(liberar);
   setTimeout(liberar, 2200);
