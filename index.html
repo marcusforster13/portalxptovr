@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XPTO VR · Treinamentos em realidade virtual</title>
+<meta name="description" content="Portal dos treinamentos policiais em realidade virtual da XPTO: seis ocorrências completas para Meta Quest e navegador.">
+<meta property="og:title" content="XPTO VR · Treinamentos em realidade virtual">
+<meta property="og:description" content="Seis ocorrências policiais em realidade virtual, no Meta Quest ou no navegador.">
+<meta property="og:image" content="img/ciep-0.webp">
+<meta name="theme-color" content="#05070f">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<link rel="preload" as="image" href="img/ciep-0.webp">
+</head>
+<body>
+
+<header class="topo" id="topo">
+  <a class="marca" href="#inicio" aria-label="XPTO VR, início">
+    <img src="img/logo-xpto.png" alt="XPTO inc." width="120" height="29">
+    <span class="marca-vr">VR</span>
+  </a>
+  <nav class="menu" aria-label="Principal">
+    <a href="#fases">Fases</a>
+    <a href="#recursos">Como funciona</a>
+    <a href="#acesso">Como acessar</a>
+  </nav>
+  <a class="btn btn-pq" href="#fases">Escolher fase</a>
+</header>
+
+<main>
+  <!-- HERÓI -->
+  <section class="heroi" id="inicio">
+    <div class="heroi-fundo" id="heroiFundo" aria-hidden="true"></div>
+    <div class="heroi-veu" aria-hidden="true"></div>
+    <div class="heroi-conteudo">
+      <p class="sobretitulo"><span class="ponto"></span>Treinamento policial em realidade virtual</p>
+      <h1>Viva a ocorrência <br><em>antes</em> que ela aconteça.</h1>
+      <p class="heroi-texto">Seis ocorrências completas, do chamado ao relatório. Cada decisão conta: entrar ou esperar, falar ou agir, apreender ou preservar. Funciona no Meta Quest e no navegador do computador, sem instalar nada.</p>
+      <div class="heroi-acoes">
+        <a class="btn btn-prim" href="#fases">Ver as 6 fases</a>
+        <a class="btn btn-sec" href="#acesso">Como acessar no Meta Quest</a>
+      </div>
+    </div>
+    <div class="heroi-trilha" id="heroiTrilha" role="tablist" aria-label="Cenários em destaque"></div>
+  </section>
+
+  <!-- NÚMEROS -->
+  <section class="numeros" aria-label="Resumo">
+    <div><strong>6</strong><span>fases completas</span></div>
+    <div><strong>4</strong><span>modos de jogo</span></div>
+    <div><strong>20+</strong><span>variações sorteadas</span></div>
+    <div><strong>0–100</strong><span>nota com base legal</span></div>
+  </section>
+
+  <!-- FASES -->
+  <section class="secao" id="fases">
+    <div class="secao-cab">
+      <p class="sobretitulo">As fases</p>
+      <h2>Escolha a ocorrência</h2>
+      <p>Cada fase é um cenário inteiro do Rio de Janeiro, com personagens, variações e uma conduta certa que muda a cada rodada.</p>
+    </div>
+    <div class="filtros" id="filtros" role="group" aria-label="Filtrar fases">
+      <button class="filtro ativo" data-f="todas">Todas</button>
+      <button class="filtro" data-f="Noite">Noite</button>
+      <button class="filtro" data-f="Dia">Dia</button>
+    </div>
+    <div class="fases" id="listaFases"></div>
+  </section>
+
+  <!-- RECURSOS -->
+  <section class="secao recursos" id="recursos">
+    <div class="secao-cab">
+      <p class="sobretitulo">Como funciona</p>
+      <h2>Em todas as fases</h2>
+    </div>
+    <div class="grade-recursos">
+      <article class="recurso">
+        <div class="rec-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l9 4.5v9L12 21l-9-4.5v-9z"/><path d="M3 7.5l9 4.5 9-4.5M12 12v9"/></svg></div>
+        <h3>Exploração</h3><p>Cena livre. Marcadores explicam cada parte do local, cada vestígio e cada equipamento.</p>
+      </article>
+      <article class="recurso">
+        <div class="rec-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h11a4 4 0 014 4v10H8a4 4 0 01-4-4z"/><path d="M8 9h7M8 13h5"/></svg></div>
+        <h3>História</h3><p>Ocorrências guiadas, uma de cada variação, para conhecer o cenário e a conduta esperada.</p>
+      </article>
+      <article class="recurso">
+        <div class="rec-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/></svg></div>
+        <h3>Treino</h3><p>Uma ocorrência sorteada, com objetivos e dicas na tela. Errar faz parte.</p>
+      </article>
+      <article class="recurso">
+        <div class="rec-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4h6l1 2h3v14H5V6h3z"/><path d="M9 13l2 2 4-4"/></svg></div>
+        <h3>Avaliação</h3><p>Sem dicas. No fim, relatório com nota, erros, falhas graves e a base legal de cada item.</p>
+      </article>
+      <article class="recurso largo">
+        <div class="rec-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h6"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <h3>Variações sorteadas</h3><p>A mesma ocorrência nunca se repete igual: quem está no local, como reage, o que tem escondido. Nada na tela revela a variação, só os fatos que o policial verificou. O instrutor pode forçar uma variação pelo endereço da página.</p>
+      </article>
+      <article class="recurso largo">
+        <div class="rec-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="4"/><circle cx="8.5" cy="12" r="2"/><circle cx="15.5" cy="12" r="2"/></svg></div>
+        <h3>Meta Quest e computador</h3><p>Abre direto no navegador do óculos, com controles de mão, teleporte e arma no gatilho. No computador, teclado e mouse. Sem loja, sem instalação, sem conta.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ACESSO -->
+  <section class="secao acesso" id="acesso">
+    <div class="secao-cab">
+      <p class="sobretitulo">Como acessar</p>
+      <h2>Em três passos</h2>
+    </div>
+    <ol class="passos">
+      <li><span class="passo-n">1</span><h3>Abra o navegador</h3><p>No Meta Quest, abra o app <b>Navegador</b> (Browser). No computador, use Chrome ou Edge.</p></li>
+      <li><span class="passo-n">2</span><h3>Entre neste portal</h3><p>Escolha a fase e toque em <b>Entrar</b>. A primeira carga leva alguns segundos; depois fica guardada.</p></li>
+      <li><span class="passo-n">3</span><h3>Toque em “Entrar em VR”</h3><p>O botão fica no pé da página. Escolha o modo no menu e comece a ocorrência.</p></li>
+    </ol>
+    <div class="controles">
+      <h3>Controles</h3>
+      <div class="tabela-rol">
+      <table>
+        <thead><tr><th></th><th>Computador</th><th>Meta Quest</th></tr></thead>
+        <tbody>
+          <tr><td>Andar e olhar</td><td>W A S D · arrastar o mouse</td><td>analógico esquerdo anda · direito gira</td></tr>
+          <tr><td>Falar, abrir, usar</td><td>clique</td><td>gatilho</td></tr>
+          <tr><td>Menu (rádio, checklist)</td><td>T</td><td>botão Y ou B</td></tr>
+          <tr><td>Sacar ou guardar a arma</td><td>Q (o clique dispara)</td><td>botão A (gatilho direito dispara)</td></tr>
+          <tr><td>Recarregar</td><td>R</td><td>apertar o analógico direito</td></tr>
+          <tr><td>Lanterna</td><td>F</td><td>grip</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <img src="img/logo-xpto.png" alt="XPTO inc." width="100" height="24">
+  <p>Situações fictícias: pessoas, endereços e mensagens são inventados. Os roteiros são rascunhos para validação com instrutores; os pontos que dependem de norma interna estão marcados no próprio treinamento.</p>
+  <p class="rod-pq">Violência contra a mulher: Ligue 180 · Emergência: 190</p>
+</footer>
+
+<!-- DETALHE DA FASE -->
+<div class="painel" id="painel" role="dialog" aria-modal="true" aria-labelledby="pTitulo" hidden>
+  <div class="painel-fundo" data-fechar></div>
+  <article class="painel-caixa">
+    <button class="fechar" data-fechar aria-label="Fechar">×</button>
+    <div class="galeria">
+      <img id="pFoto" alt="">
+      <button class="gal-seta esq" id="galEsq" aria-label="Foto anterior">‹</button>
+      <button class="gal-seta dir" id="galDir" aria-label="Próxima foto">›</button>
+      <div class="gal-miniaturas" id="pMinis"></div>
+    </div>
+    <div class="painel-corpo">
+      <p class="sobretitulo" id="pFase"></p>
+      <h2 id="pTitulo"></h2>
+      <ul class="fichas" id="pFicha"></ul>
+      <p class="p-ocorrencia" id="pOcorrencia"></p>
+      <div class="p-entrar">
+        <a class="btn btn-prim" id="pEntrar" target="_blank" rel="noopener">Entrar no treinamento</a>
+        <button class="btn btn-sec" id="pCopiar">Copiar link</button>
+      </div>
+      <div class="p-colunas">
+        <section><h3>O que você treina</h3><ul class="lista-check" id="pTreina"></ul></section>
+        <section>
+          <div id="pVarBloco"><h3>Variações sorteadas</h3><ul class="lista-pt" id="pVar"></ul></div>
+          <h3>Modos</h3><ul class="lista-pt" id="pModos"></ul>
+          <h3>Base legal</h3><ul class="etiquetas" id="pBase"></ul>
+        </section>
+      </div>
+      <p class="aviso" id="pSensivel"></p>
+    </div>
+  </article>
+</div>
+
+<script src="dados.js"></script>
+<script src="portal.js"></script>
+</body>
+</html>
