@@ -59,7 +59,7 @@
         <span class="fase-n">FASE ${f.n}</span>
         <span class="fase-periodo">${icone(f.periodo)}${f.periodo.toUpperCase()}</span>
         <img class="principal" src="${img(f.id, 0, true)}" srcset="${img(f.id, 0, true)} 800w, ${img(f.id, 0)} 1600w" sizes="(max-width:900px) 100vw, 760px" alt="${esc(f.titulo)}: ${esc(f.local)}" loading="lazy" decoding="async">
-        <video class="previa" muted playsinline loop preload="none" aria-hidden="true" data-src="${vid(f.id, true)}"></video>
+        <video class="previa" muted playsinline loop preload="none" aria-hidden="true" data-src="${vid(f.id, celular)}"></video>
         <span class="brilho"></span>
         <span class="cantos"><i></i><i></i><i></i><i></i></span>
         <div class="minis">${[0, 1, 2, 3].map(k => `<button data-foto="${k}" aria-label="Ver foto ${k + 1}"${k ? '' : ' class="ativa"'}><img src="${img(f.id, k, true)}" alt="" loading="lazy"></button>`).join('')}</div>
