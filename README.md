@@ -19,6 +19,10 @@ Portal dos treinamentos policiais em realidade virtual: uma página com as seis 
 
 - `video/<fase>.mp4` (720p) e `<fase>-sm.mp4` (360p, celular): clipes de 8 s gravados nos próprios sites com Chrome headless; `<fase>-capa.webp` é o primeiro quadro. Passam no fundo da tela inicial e tocam no cartão ao passar o mouse.
 
+## Estação do instrutor (`monitor.html`)
+
+O aluno abre a fase pelo botão **Com monitoramento** (`?monitor=1` no site do treino) e recebe um código de 5 dígitos. O instrutor digita o código em `monitor.html`. A conexão é direta (WebRTC via PeerJS); o óculos manda só dados (pose, personagens, estado do treino) e a estação redesenha a cena num iframe do próprio site em `?espectador=1`. Piloto: CIEP (`monitor.js` no repositório ciep). Sem esses parâmetros o treino não carrega nada do monitoramento.
+
 Link direto para uma fase: `/#casa`, `/#leiseca`, `/#cassino`, `/#busca`, `/#ciep`, `/#favela`.
 
 Publicado no Vercel a cada push na `main`.

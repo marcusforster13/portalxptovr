@@ -3,7 +3,7 @@
   const $ = s => document.querySelector(s);
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const VERSAO = '20261124b';   // troque ao substituir fotos ou vídeos (o cache guarda por 7 dias)
+  const VERSAO = '20261124c';   // troque ao substituir fotos ou vídeos (o cache guarda por 7 dias)
   const img = (id, i, sm) => `img/${id}-${i}${sm ? '-sm' : ''}.webp?v=${VERSAO}`;
   const icone = p => p === 'Noite'
     ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="#9fb3ff"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>'
@@ -75,6 +75,7 @@
         <div class="fase-acoes">
           <a class="btn btn-prim" href="${f.url}" target="_blank" rel="noopener">Entrar na fase ${SETA}</a>
           <button class="btn btn-sec" data-abrir="${f.id}">Briefing completo</button>
+          ${f.monitor ? `<a class="btn btn-mon" href="${f.url}/?monitor=1" target="_blank" rel="noopener" title="Abre com transmissão para a estação do instrutor">◉ Com monitoramento</a>` : ''}
         </div>
       </div>`;
     lista.append(c);
@@ -147,6 +148,7 @@
     $('#pFicha').innerHTML = `<li>${icone(f.periodo)} <b>${f.periodo}</b></li><li><b>Local</b> · ${esc(f.local)}</li><li><b>Duração</b> · ${esc(f.duracao)}</li><li><b>Quest</b> e computador</li>`;
     $('#pOcorrencia').textContent = f.ocorrencia;
     $('#pEntrar').href = f.url;
+    $('#pMonitor').hidden = !f.monitor; if (f.monitor) $('#pMonitor').href = f.url + '/?monitor=1';
     $('#pTreina').innerHTML = lis(f.treina);
     $('#pVarBloco').hidden = !f.variacoes.length;
     $('#pVar').innerHTML = lis(f.variacoes);

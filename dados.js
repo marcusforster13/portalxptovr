@@ -82,7 +82,7 @@ window.FASES = [
   },
   {
     id: 'ciep', n: '05', titulo: 'A Mensagem', tema: 'Ameaça em escola',
-    url: 'https://ciep-xi.vercel.app',
+    url: 'https://ciep-xi.vercel.app', monitor: true,
     periodo: 'Dia', local: 'Escola pública no estilo dos CIEPs, no Rio de Janeiro', duracao: '20 a 30 min',
     resumo: 'A direção de uma escola recebeu o print de uma suposta ameaça de ataque. O policial precisa verificar a origem, o contexto e a atualidade da mensagem antes de decidir.',
     ocorrencia: 'O policial chega com o parceiro e encontra uma funcionária preocupada, um responsável exaltado e relatos contraditórios. Print, câmeras, frequência, livro de ocorrências e a sala de operações ajudam a separar o boato da ameaça real. A escola tem pátio, quadra, refeitório, salas de aula e alunos de uniforme.',

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estação do Instrutor · XPTO VR</title>
+<meta name="description" content="Acompanhe ao vivo o treinamento em realidade virtual: visão do aluno, objetivos, erros e mensagens para o óculos.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05070f">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="estacao.css">
+</head>
+<body class="estacao">
+
+<header class="e-topo">
+  <a class="marca" href="./" aria-label="Voltar ao portal">
+    <img src="img/logo-xpto.png" alt="XPTO inc." width="110" height="27">
+    <span class="marca-vr">VR</span>
+  </a>
+  <span class="e-titulo">Estação do instrutor</span>
+  <div class="e-status" id="status"><i></i><span>Desconectado</span></div>
+  <button class="btn btn-pq" id="sair" hidden>Encerrar monitoramento</button>
+</header>
+
+<!-- CONECTAR -->
+<section class="conectar" id="telaConectar">
+  <div class="con-caixa">
+    <p class="sobretitulo"><span class="ponto"></span>Monitoramento ao vivo</p>
+    <h1>Acompanhe o treinamento<br>em tempo real.</h1>
+    <ol class="con-passos">
+      <li>No portal, o aluno escolhe a fase e toca em <b>Entrar com monitoramento</b>.</li>
+      <li>Um código de 5 dígitos aparece no topo da tela e dentro do óculos.</li>
+      <li>Digite o código aqui.</li>
+    </ol>
+    <form id="formCodigo" class="con-form" autocomplete="off">
+      <label for="codigo" class="sr">Código da sessão</label>
+      <input id="codigo" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="00000" required>
+      <button class="btn btn-prim" type="submit">Conectar</button>
+    </form>
+    <p class="con-erro" id="erro" role="alert"></p>
+    <p class="con-nota">A conexão é direta entre o óculos e este computador. Nenhum dado do treinamento fica guardado em servidor.</p>
+  </div>
+</section>
+
+<!-- ESTAÇÃO -->
+<main class="painel-e" id="telaEstacao" hidden>
+  <section class="e-centro">
+    <div class="vista">
+      <iframe id="espectador" title="Visão do aluno" allow="autoplay; xr-spatial-tracking"></iframe>
+      <div class="vista-carregando" id="vistaCarregando"><div class="ab-barra"><span></span></div><p>Carregando o cenário…</p></div>
+      <div class="vista-hud">
+        <span class="rec"><i></i>AO VIVO</span>
+        <span id="hudVR">NAVEGADOR</span>
+        <span id="hudArma" hidden>ARMA EM PUNHO</span>
+      </div>
+      <div class="vista-botoes" role="group" aria-label="Câmera">
+        <button class="vb ativo" data-vista="aluno">Visão do aluno</button>
+        <button class="vb" data-vista="ombro">Câmera de ombro</button>
+      </div>
+    </div>
+
+    <div class="e-linha">
+      <div class="cartao-e">
+        <h2>Linha do tempo</h2>
+        <ol class="tempo" id="linha"></ol>
+      </div>
+      <div class="cartao-e">
+        <h2>Mapa</h2>
+        <canvas id="mapa" width="600" height="400" aria-label="Mapa com o trajeto do aluno e os personagens"></canvas>
+        <p class="legenda-mapa"><i class="lm-a"></i>aluno <i class="lm-n"></i>personagens <i class="lm-t"></i>trajeto</p>
+      </div>
+    </div>
+  </section>
+
+  <aside class="e-lado">
+    <div class="cartao-e sessao">
+      <p class="e-fase" id="sFase">—</p>
+      <div class="cron" id="sTempo">00:00</div>
+      <dl class="mini">
+        <dt>Modo</dt><dd id="sModo">—</dd>
+        <dt>Ocorrência</dt><dd id="sOcorr">aguardando início</dd>
+      </dl>
+    </div>
+
+    <div class="cartao-e secreto">
+      <h2>Variação sorteada <small>só o instrutor vê</small></h2>
+      <ul class="chips" id="sVar"><li class="vazio">definida quando o treino começa</li></ul>
+    </div>
+
+    <div class="cartao-e">
+      <h2>Desempenho ao vivo</h2>
+      <div class="placar">
+        <div><strong id="pAcertos">0</strong><span>acertos</span></div>
+        <div><strong id="pDesc">0</strong><span>descontos</span></div>
+        <div class="grave"><strong id="pGraves">0</strong><span>falhas graves</span></div>
+      </div>
+      <div class="final" id="final" hidden></div>
+    </div>
+
+    <div class="cartao-e">
+      <h2>Mensagem para o óculos</h2>
+      <form id="formMsg" class="msg">
+        <input id="msg" maxlength="200" placeholder="Aparece como legenda para o aluno">
+        <button class="btn btn-prim" type="submit">Enviar</button>
+      </form>
+      <div class="rapidas" id="rapidas"></div>
+    </div>
+
+    <div class="cartao-e">
+      <h2>Erros e falhas graves</h2>
+      <ul class="lista-erros" id="sErros"><li class="vazio">nenhum até agora</li></ul>
+    </div>
+
+    <div class="cartao-e">
+      <h2>Objetivos</h2>
+      <div id="sObj" class="objetivos"></div>
+    </div>
+
+    <div class="cartao-e">
+      <h2>Fatos verificados</h2>
+      <ul class="lista-pt" id="sFatos"><li class="vazio">nenhum ainda</li></ul>
+    </div>
+
+    <div class="cartao-e">
+      <h2>Anotações do instrutor</h2>
+      <form id="formNota" class="msg">
+        <input id="nota" maxlength="300" placeholder="Fica marcada com o tempo do treino">
+        <button class="btn btn-sec" type="submit">Anotar</button>
+      </form>
+      <ul class="notas" id="notas"></ul>
+      <button class="btn btn-sec largo" id="baixar">Baixar sessão (JSON)</button>
+    </div>
+  </aside>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="estacao.js"></script>
+</body>
+</html>
