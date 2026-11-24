@@ -2,7 +2,7 @@
 window.FASES = [
   {
     id: 'casa', n: '01', titulo: 'A Casa em Silêncio', tema: 'Violência doméstica',
-    url: 'https://violenciadomestica-kappa.vercel.app',
+    url: 'https://violenciadomestica-kappa.vercel.app', monitor: true,
     periodo: 'Noite', local: 'Casa num condomínio do Rio de Janeiro', duracao: '15 a 25 min + debriefing',
     resumo: 'Chegada a uma casa logo depois de um episódio de violência doméstica: vítima ferida, agressor possivelmente no local e uma criança na casa. A história é contada pelos objetos.',
     ocorrencia: 'A guarnição atende um chamado num condomínio à noite. Dentro da casa, móveis revirados, marcas na parede e objetos fora do lugar reconstituem os minutos anteriores. O policial explora a cena e lê cada vestígio nos marcadores âmbar.',
@@ -22,7 +22,7 @@ window.FASES = [
   },
   {
     id: 'leiseca', n: '02', titulo: 'Operação Lei Seca', tema: 'Fiscalização de trânsito',
-    url: 'https://leiseca-gamma.vercel.app',
+    url: 'https://leiseca-gamma.vercel.app', monitor: true,
     periodo: 'Noite', local: 'Blitz numa avenida do Rio de Janeiro', duracao: '10 a 20 min por atendimento',
     resumo: 'Uma blitz completa, com tenda, etilômetro e viaturas. O agente aborda o condutor, aplica o teste e decide o encaminhamento certo.',
     ocorrencia: 'A blitz está montada: cones, tenda, mesa de equipamentos e apoio. Os carros chegam um a um. O policial faz a abordagem, confere documentos, observa sinais de alteração, conduz o teste do etilômetro e decide entre liberar, autuar ou conduzir à delegacia.',
@@ -42,7 +42,7 @@ window.FASES = [
   },
   {
     id: 'cassino', n: '03', titulo: 'Cassino Clandestino', tema: 'Jogo de azar e uso da força',
-    url: 'https://cassino2-tan.vercel.app',
+    url: 'https://cassino2-tan.vercel.app', monitor: true,
     periodo: 'Noite', local: 'Fundos de um bar no Rio de Janeiro', duracao: '15 a 25 min',
     resumo: 'Denúncia de jogo de azar nos fundos de um bar. Quando dá para entrar, como conter quem reage, o que apreender e como recusar um suborno.',
     ocorrencia: 'Uma denúncia anônima aponta jogo de azar atrás do balcão do Bar do Zé. O bar está aberto ao público; a porta "PRIVATIVO" não. Lá dentro há máquinas caça-níquel, roleta, mesa de pôquer, um escritório trancado e uma sala reservada escondida atrás de uma estante falsa no depósito.',
@@ -62,7 +62,7 @@ window.FASES = [
   },
   {
     id: 'busca', n: '04', titulo: 'Busca e Apreensão', tema: 'Cumprimento de mandado',
-    url: 'https://buscaapreensao.vercel.app',
+    url: 'https://buscaapreensao.vercel.app', monitor: true,
     periodo: 'Dia', local: 'Apartamento 302, prédio residencial no Rio de Janeiro', duracao: '15 a 25 min',
     resumo: 'O policial militar apoia o cumprimento de um mandado num apartamento. O mandado muda a cada rodada e gavetas, armários e portas abrem de verdade.',
     ocorrencia: 'Portaria, corredor do 3º andar, o apartamento 302 completo e a sala do vizinho do 301. O policial civil é o responsável pelo mandado; o jogador, em apoio, confere o documento, propõe e faz. O mandado procura eletrônicos e documentos, e cada móvel pode esconder alguma coisa.',
@@ -102,7 +102,7 @@ window.FASES = [
   },
   {
     id: 'favela', n: '06', titulo: 'Favela', tema: 'Operação em comunidade',
-    url: 'https://favelavr.vercel.app',
+    url: 'https://favelavr.vercel.app', monitor: true,
     periodo: 'Dia', local: 'Comunidade na encosta, junto ao mar', duracao: '20 a 30 min',
     resumo: 'Uma favela inteira modelada à mão, com escadarias, becos e lajes. Uma denúncia sorteada leva a guarnição morro acima, e o caminho também avalia.',
     ocorrencia: 'A guarnição desce da viatura na entrada da comunidade, junto ao mar, e recebe uma denúncia do Disque-Denúncia. O destino fica longe e no alto: o policial sobe por escadarias e becos, onde podem aparecer um olheiro com rádio, moradores com compras ou uma criança jogando bola.',

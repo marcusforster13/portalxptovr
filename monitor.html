@@ -42,6 +42,7 @@
       <button class="btn btn-prim" type="submit">Conectar</button>
     </form>
     <p class="con-erro" id="erro" role="alert"></p>
+    <p class="con-arquivo">ou <label class="link-arq">abra uma sessão gravada<input type="file" id="arquivo" accept=".json,application/json" hidden></label> para rever o replay e imprimir o relatório.</p>
     <p class="con-nota">A conexão é direta entre o óculos e este computador. Nenhum dado do treinamento fica guardado em servidor.</p>
   </div>
 </section>
@@ -58,6 +59,13 @@
         <span id="hudVR">NAVEGADOR</span>
         <span id="hudArma" hidden>ARMA EM PUNHO</span>
         <span id="hudPausa" hidden>⏸ PAUSADO</span>
+      </div>
+      <div class="replay" id="replay">
+        <button type="button" class="rp-b" id="rpPlay" aria-label="Reproduzir">▶</button>
+        <input type="range" id="rpBarra" min="0" max="1000" value="1000" aria-label="Posição no replay">
+        <span class="rp-t" id="rpTempo">00:00</span>
+        <button type="button" class="rp-v" id="rpVel">1×</button>
+        <button type="button" class="rp-vivo" id="rpVivo">● Ao vivo</button>
       </div>
       <div class="vista-botoes" role="group" aria-label="Câmera">
         <button class="vb ativo" data-vista="aluno">Visão do aluno</button>
@@ -86,6 +94,12 @@
         <dt>Modo</dt><dd id="sModo">—</dd>
         <dt>Ocorrência</dt><dd id="sOcorr">aguardando início</dd>
       </dl>
+      <label class="aluno-nome">Aluno<input id="alunoNome" maxlength="80" placeholder="Nome e matrícula (vai no relatório)"></label>
+      <div class="crise" id="crise" hidden>
+        <div class="medidor"><span>Tensão</span><i><b id="mTensao"></b></i><em id="vTensao">0</em></div>
+        <div class="medidor vinc"><span>Vínculo</span><i><b id="mVinculo"></b></i><em id="vVinculo">0</em></div>
+        <p class="crise-info" id="criseInfo"></p>
+      </div>
     </div>
 
     <div class="cartao-e controles-e" id="controles">
@@ -104,6 +118,12 @@
         <h3 class="ctl-sub">Eventos</h3>
         <div id="cEventos" class="eventos"></div>
       </div>
+    </div>
+
+    <div class="cartao-e tela-aluno" id="cTela" hidden>
+      <h2>Na tela do aluno</h2>
+      <p class="tl-tag" id="tlTag"></p><p class="tl-tit" id="tlTit"></p><p class="tl-txt" id="tlTxt"></p>
+      <ul class="tl-bot" id="tlBot"></ul>
     </div>
 
     <div class="cartao-e secreto">
@@ -156,7 +176,8 @@
         <button class="btn btn-sec" type="submit">Anotar</button>
       </form>
       <ul class="notas" id="notas"></ul>
-      <button class="btn btn-sec largo" id="baixar">Baixar sessão (JSON)</button>
+      <button class="btn btn-prim largo" id="imprimir">Relatório para imprimir / PDF</button>
+      <button class="btn btn-sec largo" id="baixar">Salvar sessão com replay (JSON)</button>
     </div>
   </aside>
 </main>

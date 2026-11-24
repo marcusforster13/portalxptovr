@@ -1,15 +1,34 @@
-// Estação do instrutor: conecta direto ao óculos (PeerJS/WebRTC), mostra a visão do aluno e o estado do treino.
+// Estação do instrutor: conecta direto ao óculos (PeerJS/WebRTC), mostra a visão do aluno e o estado do treino,
+// controla o treino, grava a sessão (replay) e gera o relatório para imprimir/PDF.
 (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fmt = s => { s = Math.max(0, s || 0); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
   const NOMES_FASE = { casa: 'Fase 01 · A Casa em Silêncio', leiseca: 'Fase 02 · Operação Lei Seca', cassino: 'Fase 03 · Cassino Clandestino', busca: 'Fase 04 · Busca e Apreensão', ciep: 'Fase 05 · A Mensagem', favela: 'Fase 06 · Favela' };
+  const NOMES_MODO = { historia: 'História (guiado)', treino: 'Treino (com dicas)', avaliacao: 'Avaliação (sem dicas)', exploracao: 'Exploração' };
 
-  let peer = null, conn = null, codigo = '', info = null, est = null, tAtual = 0, tRelogio = 0, origemEsp = '*', iframePronto = false;
-  const trajeto = [], notas = [], mensagens = [], linhaLocal = [];
-  let npcs = [], pose = null;
+  let peer = null, conn = null, codigo = '', info = null, est = null, estVivo = null, tAtual = 0, tRelogio = 0, origemEsp = '*', iframePronto = false;
+  let notas = [], mensagens = [], linhaLocal = [];
+  let npcs = [], pose = null, trajeto = [];
 
   const status = (txt, cls) => { const s = $('#status'); s.className = 'e-status ' + (cls || ''); s.querySelector('span').textContent = txt; };
+
+  /* ---------- gravação da sessão (para o replay) ---------- */
+  const G = { t0: 0, poses: [], npcs: [], estados: [], dic: {} };
+  const agoraG = () => { if (!G.t0) G.t0 = performance.now(); return +((performance.now() - G.t0) / 1000).toFixed(2); };
+  let ultPoseG = -1, ultNpcG = -1;
+  function gravar(m) {
+    if (modoArquivo) return;
+    const t = agoraG();
+    if (m.tipo === 'pose' && t - ultPoseG >= .1) { ultPoseG = t; G.poses.push([t, ...m.p, ...m.q, m.vr ? 1 : 0, m.arma ? 1 : 0]); }
+    else if (m.tipo === 'npcs' && t - ultNpcG >= .25) {
+      ultNpcG = t;
+      for (const n of m.lista || []) G.dic[n.k] ||= { papel: n.papel, nome: n.nome, alt: n.alt };
+      G.npcs.push([t, (m.lista || []).map(n => [n.k, ...n.p, n.r, n.a]), m.portas || {}]);
+    }
+    else if (m.tipo === 'estado') G.estados.push([t, m]);
+  }
+  const duracaoG = () => Math.max(G.poses.at(-1)?.[0] || 0, G.estados.at(-1)?.[0] || 0);
 
   /* ---------- conexão ---------- */
   const q = new URLSearchParams(location.search);
@@ -29,14 +48,14 @@
     }
     const abrir = () => {
       conn = peer.connect('xptovr-' + codigo, { reliable: true });
-      const limite = setTimeout(() => { if (!conn.open) { status('Desconectado'); $('#erro').textContent ||= 'O óculos não respondeu. Confira o código e se o aluno abriu a fase com monitoramento.'; } }, 15000);
+      const limite = setTimeout(() => { if (!conn.open) { status('Desconectado'); $('#erro').textContent ||= 'O óculos não respondeu. Confira o código e se o aluno abriu a fase com monitoramento. Em algumas redes (quartel, empresa) a conexão direta é bloqueada.'; } }, 15000);
       conn.on('open', () => { clearTimeout(limite); status('Ao vivo · ' + codigo, 'ok'); });
       conn.on('data', receber);
       conn.on('close', () => { status('Conexão perdida · tentando de novo', 'espera'); setTimeout(() => { if (codigo && (!conn || !conn.open)) abrir(); }, 3000); });
     };
     peer.open ? abrir() : peer.once('open', abrir);
   }
-  $('#sair').onclick = () => { codigo = ''; conn?.close(); peer?.destroy(); location.href = 'monitor.html'; };
+  $('#sair').onclick = () => { if (G.poses.length && !modoArquivo && !confirm('Sair da estação? Salve a sessão antes se quiser o replay depois.')) return; codigo = ''; conn?.close(); peer?.destroy(); location.href = 'monitor.html'; };
 
   /* ---------- espectador (iframe com o próprio site do treino) ---------- */
   const ifr = $('#espectador');
@@ -49,50 +68,55 @@
   const mandarVista = () => paraIframe({ tipo: 'vista', vista });
   document.querySelectorAll('.vb').forEach(b => b.onclick = () => { vista = b.dataset.vista; document.querySelectorAll('.vb').forEach(x => x.classList.toggle('ativo', x === b)); mandarVista(); });
 
+  function abrirEstacao(m) {
+    const novo = !info || info.url !== m.url; info = m;
+    $('#telaConectar').hidden = true; $('#telaEstacao').hidden = false; $('#sair').hidden = false;
+    $('#sFase').textContent = NOMES_FASE[m.fase] || m.titulo || 'Treinamento';
+    document.title = `${NOMES_FASE[m.fase] || 'Treino'} · Estação do instrutor`;
+    if (novo) {
+      const u = new URL(m.url); if (!/^https:$/.test(u.protocol) && !/^(localhost|127\.0\.0\.1)$/.test(u.hostname)) return;
+      origemEsp = u.origin; u.searchParams.set('espectador', '1'); iframePronto = false;
+      $('#vistaCarregando').classList.remove('some'); ifr.src = u.href;
+    }
+    montarObjetivos(); montarControles();
+  }
+
   /* ---------- dados do óculos ---------- */
   function receber(m) {
     if (!m || typeof m !== 'object') return;
+    gravar(m);
     switch (m.tipo) {
-      case 'ola': {
-        const novo = !info || info.url !== m.url; info = m;
-        $('#telaConectar').hidden = true; $('#telaEstacao').hidden = false; $('#sair').hidden = false;
-        $('#sFase').textContent = NOMES_FASE[m.fase] || m.titulo || 'Treinamento';
-        document.title = `${NOMES_FASE[m.fase] || 'Treino'} · Estação do instrutor`;
-        if (novo) {
-          const u = new URL(m.url); if (!/^https:$/.test(u.protocol) && !/^(localhost|127\.0\.0\.1)$/.test(u.hostname)) return;
-          origemEsp = u.origin; u.searchParams.set('espectador', '1'); iframePronto = false;
-          $('#vistaCarregando').classList.remove('some'); ifr.src = u.href;
-        }
-        montarObjetivos(); montarControles();
-        break;
-      }
+      case 'ola': abrirEstacao(m); break;
       case 'pose':
-        pose = m; paraIframe(m);
-        $('#hudVR').textContent = m.vr ? 'NO ÓCULOS (VR)' : 'NAVEGADOR'; $('#hudArma').hidden = !m.arma;
+        if (modoReplay) break;
+        aplicarPose(m);
         { const u = trajeto[trajeto.length - 1]; if (!u || Math.hypot(u[0] - m.p[0], u[1] - m.p[2]) > .35) { trajeto.push([m.p[0], m.p[2]]); if (trajeto.length > 4000) trajeto.shift(); } }
         break;
-      case 'npcs': npcs = m.lista || []; paraIframe(m); break;
+      case 'npcs': if (!modoReplay) { npcs = m.lista || []; paraIframe(m); } break;
       case 'relogio': if (m.t != null) { tAtual = m.t; tRelogio = m.pausado ? 0 : performance.now(); } else if (!m.ativo) tRelogio = 0; controlesEstado(m); break;
-      case 'estado': est = m; tAtual = m.t; tRelogio = m.ativo && !m.pausado ? performance.now() : 0; desenharEstado(); controlesEstado(m); break;
+      case 'estado': estVivo = m; tAtual = m.t; tRelogio = m.ativo && !m.pausado ? performance.now() : 0; if (!modoReplay) { est = m; desenharEstado(); } controlesEstado(m); break;
     }
   }
+  function aplicarPose(m) { pose = m; paraIframe(m); $('#hudVR').textContent = m.vr ? 'NO ÓCULOS (VR)' : 'NAVEGADOR'; $('#hudArma').hidden = !m.arma; }
 
   /* ---------- painel ---------- */
   const nomeVar = (k, v) => info?.nomesVar?.[k]?.[v] || v;
+  let cenarioObj = -1;
   function montarObjetivos() {
+    cenarioObj = est?.cenario || 0;
     const grupos = {};
-    for (const [id, a] of Object.entries(info?.catalogo || {})) if (a.tipo === 'acao') (grupos[a.fase] ||= []).push([id, a]);
+    for (const [id, a] of Object.entries(info?.catalogo || {})) if (a.tipo === 'acao' && (a.c || 0) === cenarioObj) (grupos[a.fase] ||= []).push([id, a]);
     $('#sObj').innerHTML = Object.entries(grupos).map(([f, itens]) => `<h3>${esc(f)}</h3><ul>${itens.map(([id, a]) => `<li data-id="${esc(id)}">${esc(a.texto)}</li>`).join('')}</ul>`).join('') || '<p class="vazio">Sem lista de objetivos.</p>';
-    desenharEstado();
+    if (est) desenharEstado();
   }
   function desenharEstado() {
     if (!est) return;
-    $('#sModo').textContent = { historia: 'História (guiado)', treino: 'Treino (com dicas)', avaliacao: 'Avaliação (sem dicas)', exploracao: 'Exploração' }[est.modo] || est.modo || '—';
+    if ((est.cenario || 0) !== cenarioObj) return montarObjetivos();
+    $('#sModo').textContent = NOMES_MODO[est.modo] || est.modo || '—';
     $('#sOcorr').textContent = est.ocorrencia ? `${est.ocorrencia.n ? est.ocorrencia.n + 'ª · ' : ''}${est.ocorrencia.titulo || ''}` : (est.ativo ? 'em andamento' : 'aguardando início');
     const vars = Object.entries(est.variacao || {});
     $('#sVar').innerHTML = vars.length ? vars.map(([k, v]) => `<li><b>${esc(k)}</b>${esc(nomeVar(k, v))}</li>`).join('') : '<li class="vazio">definida quando o treino começa</li>';
     const feitos = new Map(est.feitos || []);
-    let pts = 0; for (const id of feitos.keys()) pts += info?.catalogo?.[id]?.pontos || 0;
     $('#pAcertos').textContent = feitos.size;
     $('#pDesc').textContent = [...est.erros, ...est.graves].reduce((s, e) => s + (e.pontos || 0), 0);
     $('#pGraves').textContent = est.graves.length;
@@ -101,8 +125,17 @@
     $('#sErros').innerHTML = erros.length ? erros.map(e => `<li class="${e.grave ? 'grave' : ''}">${e.grave ? '⚠ ' : ''}${esc(e.texto)}<small>${fmt(e.t)} · ${e.pontos} pts${e.base ? ' · ' + esc(e.base) : ''}</small></li>`).join('') : '<li class="vazio">nenhum até agora</li>';
     const fatos = est.ocorrencia?.fatos || [];
     $('#sFatos').innerHTML = fatos.length ? fatos.map(f => `<li>${esc(f)}</li>`).join('') : '<li class="vazio">nenhum ainda</li>';
-    const r = est.relatorio;
-    if (r) { const f = $('#final'); f.hidden = false; f.className = 'final ' + (r.aprovado ? 'aprovado' : 'reprovado'); f.innerHTML = `<b>${r.nota}/100</b>${r.aprovado ? 'Aprovado' : 'Não aprovado'} · ${esc(r.tempo)}`; }
+    const c = est.crise; $('#crise').hidden = !c;
+    if (c) {
+      $('#mTensao').style.width = c.tensao + '%'; $('#vTensao').textContent = c.tensao;
+      $('#mVinculo').style.width = c.vinculo + '%'; $('#vVinculo').textContent = c.vinculo;
+      $('#criseInfo').textContent = `Papel: ${c.papel || '—'} · fase: ${c.fase || '—'}${c.refens != null ? ' · reféns na sala: ' + c.refens : ''}${c.resultado ? ' · desfecho: ' + c.resultado : ''}`;
+    }
+    const tl = est.tela; $('#cTela').hidden = !tl;
+    if (tl) { $('#tlTag').textContent = tl.tag; $('#tlTit').textContent = tl.titulo; $('#tlTxt').textContent = tl.texto; $('#tlBot').innerHTML = tl.botoes.map(b => `<li>${esc(b)}</li>`).join(''); }
+    const r = est.relatorio || G.estados.findLast?.(([, e]) => e.relatorio)?.[1]?.relatorio;
+    const f = $('#final');
+    if (r) { f.hidden = false; f.className = 'final ' + (r.aprovado ? 'aprovado' : 'reprovado'); f.innerHTML = `<b>${r.nota}/100</b>${r.aprovado ? 'Aprovado' : 'Não aprovado'} · ${esc(r.tempo)}`; } else f.hidden = true;
     desenharLinha();
   }
   function desenharLinha() {
@@ -110,7 +143,7 @@
     const tudo = [...itens, ...linhaLocal].sort((a, b) => b.t - a.t);
     $('#linha').innerHTML = tudo.length ? tudo.map(i => `<li class="${i.cls}"><time>${fmt(i.t)}</time><span>${esc(i.texto)}</span></li>`).join('') : '<li class="vazio">Os acontecimentos aparecem aqui assim que o treino começa.</li>';
   }
-  const tempoTreino = () => tRelogio ? tAtual + (performance.now() - tRelogio) / 1000 : tAtual;
+  const tempoTreino = () => modoReplay ? (est?.t || 0) : tRelogio ? tAtual + (performance.now() - tRelogio) / 1000 : tAtual;
   setInterval(() => { $('#sTempo').textContent = fmt(tempoTreino()); }, 250);
 
   /* ---------- mensagens e anotações ---------- */
@@ -126,6 +159,11 @@
     const t = tempoTreino(); mensagens.push({ t, texto, como }); marcar((como === 'central' ? 'Central (rádio): ' : 'Instrutor: ') + texto);
   }
   const marcar = texto => { linhaLocal.push({ t: tempoTreino(), texto, cls: 'instrutor' }); desenharLinha(); };
+  const desenharNotas = () => $('#notas').innerHTML = notas.map(n => `<li><time>${fmt(n.t)}</time>${esc(n.texto)}</li>`).join('');
+  $('#formNota').addEventListener('submit', e => {
+    e.preventDefault(); const v = $('#nota').value.trim(); if (!v) return;
+    notas.push({ t: tempoTreino(), texto: v }); $('#nota').value = ''; desenharNotas();
+  });
 
   /* ---------- controles do instrutor ---------- */
   const cmd = m => conn?.open && conn.send({ tipo: 'comando', ...m });
@@ -133,12 +171,15 @@
   function montarControles() {
     $('#cModo').innerHTML = (info.modos || []).map(([k, n]) => `<option value="${esc(k)}"${k === 'treino' ? ' selected' : ''}>${esc(n)}</option>`).join('');
     $('#cVars').innerHTML = Object.entries(info.variacoes || {}).map(([k, ops]) => `<label>${esc(k)}<select data-var="${esc(k)}"><option value="">Sortear</option>${ops.map(o => `<option value="${esc(o)}">${esc(nomeVar(k, o))}</option>`).join('')}</select></label>`).join('');
-    $('#controles').hidden = !(info.modos || []).length;
+    $('#controles').hidden = modoArquivo || !(info.modos || []).length;
+    varsVisiveis();
   }
+  const varsVisiveis = () => { $('#cVars').hidden = /^(crise:|unico)/.test($('#cModo').value); };
+  $('#cModo').onchange = varsVisiveis;
   $('#cIniciar').onclick = () => {
-    const variacao = {}; document.querySelectorAll('#cVars select').forEach(s => { if (s.value) variacao[s.dataset.var] = s.value; });
+    const variacao = {}; if (!$('#cVars').hidden) document.querySelectorAll('#cVars select').forEach(s => { if (s.value) variacao[s.dataset.var] = s.value; });
     cmd({ acao: 'iniciar', modo: $('#cModo').value, variacao });
-    marcar(`Instrutor iniciou o treino (${$('#cModo').selectedOptions[0]?.textContent || ''}${Object.keys(variacao).length ? ', variação escolhida' : ', variação sorteada'}).`);
+    marcar(`Instrutor iniciou o treino (${$('#cModo').selectedOptions[0]?.textContent || ''}${Object.keys(variacao).length ? ', variação escolhida' : ''}).`);
   };
   $('#cPausa').onclick = () => { cmd({ acao: ctl.pausado ? 'retomar' : 'pausar' }); marcar(ctl.pausado ? 'Instrutor retomou o treino.' : 'Instrutor pausou o treino.'); };
   $('#cEncerrar').onclick = () => { if (confirm('Encerrar o treino agora? O óculos mostra o relatório final ao aluno.')) { cmd({ acao: 'encerrar' }); marcar('Instrutor encerrou o treino.'); } };
@@ -151,18 +192,118 @@
     ctl = { ativo: !!m.ativo, pausado: !!m.pausado };
     $('#ctlInicio').hidden = ctl.ativo; $('#ctlAtivo').hidden = !ctl.ativo;
     const bp = $('#cPausa'); bp.textContent = ctl.pausado ? '▶ Retomar' : '⏸ Pausar'; bp.classList.toggle('pausado', ctl.pausado);
-    $('#hudPausa').hidden = !ctl.pausado; $('#vistaPausa').hidden = !ctl.pausado;
-    const chave = JSON.stringify(m.eventos || null); if (m.eventos && chave !== ultEventos) ultEventos = chave, $('#cEventos').innerHTML = m.eventos.map(ev => `<button type="button" data-ev="${esc(ev.id)}"${ev.ok ? '' : ' disabled'}><b>${esc(ev.label)}</b>${!ev.ok && ev.so ? `<small>${esc(ev.so)}</small>` : ''}</button>`).join('');
+    $('#hudPausa').hidden = !ctl.pausado || modoReplay; $('#vistaPausa').hidden = !ctl.pausado || modoReplay;
+    const chave = JSON.stringify(m.eventos || null);
+    if (m.eventos && chave !== ultEventos) { ultEventos = chave; $('#cEventos').innerHTML = m.eventos.length ? m.eventos.map(ev => `<button type="button" data-ev="${esc(ev.id)}"${ev.ok ? '' : ' disabled'}><b>${esc(ev.label)}</b>${!ev.ok && ev.so ? `<small>${esc(ev.so)}</small>` : ''}</button>`).join('') : '<p class="ctl-nota">Esta fase não tem eventos para disparar.</p>'; }
   }
-  $('#formNota').addEventListener('submit', e => {
-    e.preventDefault(); const v = $('#nota').value.trim(); if (!v) return;
-    const t = tempoTreino(); notas.push({ t, texto: v }); $('#nota').value = '';
-    $('#notas').innerHTML = notas.map(n => `<li><time>${fmt(n.t)}</time>${esc(n.texto)}</li>`).join('');
-  });
+
+  /* ---------- replay ---------- */
+  let modoReplay = false, modoArquivo = false, tRep = 0, tocando = false, vel = 1, ultQuadro = 0;
+  const barra = $('#rpBarra');
+  const busca = (lista, t) => { let a = 0, b = lista.length - 1, r = -1; while (a <= b) { const m = (a + b) >> 1; if (lista[m][0] <= t) { r = m; a = m + 1; } else b = m - 1; } return r; };
+  function entrarReplay(t) {
+    if (!G.poses.length && !G.estados.length) return;
+    modoReplay = true; $('#replay').classList.add('ativo'); $('.rec').innerHTML = '<i></i>REPLAY'; $('#hudPausa').hidden = true; $('#vistaPausa').hidden = true;
+    irPara(t);
+  }
+  function irPara(t) {
+    const d = duracaoG(); tRep = Math.max(0, Math.min(d, t));
+    barra.value = d ? Math.round(tRep / d * 1000) : 0; $('#rpTempo').textContent = fmt(tRep);
+    const ip = busca(G.poses, tRep);
+    if (ip >= 0) { const r = G.poses[ip]; aplicarPose({ tipo: 'pose', p: r.slice(1, 4), q: r.slice(4, 8), vr: !!r[8], arma: !!r[9] }); }
+    const inn = busca(G.npcs, tRep);
+    if (inn >= 0) { const [, l, portas] = G.npcs[inn]; npcs = l.map(([k, x, y, z, r, a]) => ({ k, ...G.dic[k], p: [x, y, z], r, a })); paraIframe({ tipo: 'npcs', lista: npcs, portas }); }
+    trajeto = []; for (let i = 0; i <= ip; i += 3) { const r = G.poses[i]; const u = trajeto.at(-1); if (!u || Math.hypot(u[0] - r[1], u[1] - r[3]) > .35) trajeto.push([r[1], r[3]]); }
+    const ie = busca(G.estados, tRep);
+    if (ie >= 0) { est = G.estados[ie][1]; desenharEstado(); }
+  }
+  function sairReplay() {
+    if (modoArquivo) return;
+    modoReplay = false; tocando = false; $('#rpPlay').textContent = '▶'; $('#replay').classList.remove('ativo'); $('.rec').innerHTML = '<i></i>AO VIVO';
+    barra.value = 1000; est = estVivo; desenharEstado(); controlesEstado(estVivo || {});
+    trajeto = []; for (let i = 0; i < G.poses.length; i += 3) { const r = G.poses[i]; const u = trajeto.at(-1); if (!u || Math.hypot(u[0] - r[1], u[1] - r[3]) > .35) trajeto.push([r[1], r[3]]); }
+  }
+  barra.addEventListener('input', () => { const t = barra.value / 1000 * duracaoG(); modoReplay ? irPara(t) : entrarReplay(t); });
+  $('#rpPlay').onclick = () => {
+    if (!modoReplay) entrarReplay(0);
+    tocando = !tocando; $('#rpPlay').textContent = tocando ? '❚❚' : '▶';
+    if (tocando && tRep >= duracaoG() - .1) irPara(0);
+    ultQuadro = performance.now();
+  };
+  $('#rpVel').onclick = () => { vel = vel === 1 ? 2 : vel === 2 ? 4 : vel === 4 ? .5 : 1; $('#rpVel').textContent = vel + '×'; };
+  $('#rpVivo').onclick = sairReplay;
+  (function laco() {
+    requestAnimationFrame(laco);
+    const agora = performance.now(), dt = (agora - ultQuadro) / 1000; ultQuadro = agora;
+    if (modoReplay && tocando) { irPara(tRep + dt * vel); if (tRep >= duracaoG()) { tocando = false; $('#rpPlay').textContent = '▶'; } }
+  })();
+
+  /* ---------- salvar e abrir sessão ---------- */
+  const aluno = () => $('#alunoNome').value.trim();
+  const nomeArq = ext => `sessao_${info?.fase || 'treino'}_${(aluno() || 'aluno').replace(/[^\w-]+/g, '_').slice(0, 30)}_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.${ext}`;
   $('#baixar').onclick = () => {
-    const dados = { fase: info?.fase, codigo, exportado: new Date().toISOString(), estado: est, relatorio: est?.relatorio || null, notas_do_instrutor: notas, mensagens_enviadas: mensagens, acoes_do_instrutor: linhaLocal, trajeto };
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' }));
-    a.download = `sessao_${info?.fase || 'treino'}_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`; a.click();
+    const ultimo = estVivo || est;
+    const dados = { formato: 'xptovr-sessao-1', fase: info?.fase, aluno: aluno(), codigo, exportado: new Date().toISOString(), info, estado: ultimo, relatorio: ultimo?.relatorio || null,
+      notas_do_instrutor: notas, mensagens_enviadas: mensagens, acoes_do_instrutor: linhaLocal, gravacao: G };
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(dados)], { type: 'application/json' }));
+    a.download = nomeArq('json'); a.click();
+  };
+  $('#arquivo').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (d.formato !== 'xptovr-sessao-1' || !d.info || !d.gravacao) throw new Error('formato');
+      modoArquivo = true; Object.assign(G, d.gravacao);
+      notas = d.notas_do_instrutor || []; mensagens = d.mensagens_enviadas || []; linhaLocal = d.acoes_do_instrutor || [];
+      estVivo = d.estado; est = d.estado;
+      $('#alunoNome').value = d.aluno || ''; desenharNotas();
+      abrirEstacao(d.info);
+      status('Replay · sessão gravada', 'ok'); $('#rpVivo').hidden = true;
+      document.querySelectorAll('#formMsg,.como,#rapidas,#formNota').forEach(x => x.hidden = true);
+      const esperar = () => iframePronto ? entrarReplay(0) : setTimeout(esperar, 400); esperar();
+    } catch (er) { $('#erro').textContent = 'Este arquivo não é uma sessão salva pela estação do instrutor.'; }
+  });
+
+  /* ---------- relatório para imprimir / PDF ---------- */
+  $('#imprimir').onclick = () => {
+    const e = estVivo || est; if (!e) { alert('Ainda não há dados do treino.'); return; }
+    const r = e.relatorio, feitos = new Map(e.feitos || []);
+    const objs = Object.entries(info?.catalogo || {}).filter(([, a]) => a.tipo === 'acao' && (a.c || 0) === (e.cenario || 0));
+    const grupos = {}; for (const [id, a] of objs) (grupos[a.fase] ||= []).push([id, a]);
+    const erros = [...e.graves.map(g => ({ ...g, grave: true })), ...e.erros].sort((a, b) => a.t - b.t);
+    const linha = [...(e.log || []).map(l => ({ t: l.t, texto: info?.catalogo?.[l.id]?.texto || [...e.erros, ...e.graves].find(x => x.id === l.id)?.texto || l.id })), ...linhaLocal].sort((a, b) => a.t - b.t);
+    const vars = Object.entries(e.variacao || {}).map(([k, v]) => `${esc(k)}: ${esc(nomeVar(k, v))}`).join(' · ');
+    const nota = r ? `<div class="nota ${r.aprovado ? 'ok' : 'nao'}"><b>${r.nota}/100</b><span>${r.aprovado ? 'APROVADO' : 'NÃO APROVADO'}</span></div>` : `<div class="nota parcial"><b>${feitos.size}</b><span>acertos · ${e.graves.length} falha(s) grave(s) · treino não encerrado</span></div>`;
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório · ${esc(NOMES_FASE[info?.fase] || 'Treino')} · ${esc(aluno() || 'aluno')}</title>
+<style>
+*{box-sizing:border-box}body{font:13px/1.5 Inter,Segoe UI,Arial,sans-serif;color:#111;margin:0;padding:28px 36px;background:#fff}
+h1{font-size:22px;margin:0}h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#0a4f5a;border-bottom:2px solid #00a9b8;padding-bottom:4px;margin:22px 0 8px}
+h3{font-size:13px;margin:12px 0 4px}.topo{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:3px solid #0a0f3c;padding-bottom:12px}
+.marca{font:700 20px Arial;color:#00a9b8;letter-spacing:.08em}.marca small{display:block;font-size:10px;color:#0a0f3c;letter-spacing:.2em}
+dl{display:grid;grid-template-columns:130px 1fr;gap:3px 12px;margin:10px 0}dt{color:#555}dd{margin:0;font-weight:600}
+.nota{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:8px;margin:10px 0}.nota b{font-size:28px}.nota.ok{background:#e7f8ef;color:#126b3c}.nota.nao{background:#fde9e9;color:#8a1c1c}.nota.parcial{background:#eef2f7;color:#333}
+ul{margin:0;padding-left:18px}li{margin:2px 0}.obj{list-style:none;padding:0}.obj li::before{content:"☐ ";color:#999}.obj li.ok::before{content:"☑ ";color:#126b3c}.obj li.ok{color:#111}.obj li{color:#666}
+.grave{color:#8a1c1c;font-weight:600}table{width:100%;border-collapse:collapse}td{padding:3px 6px;border-bottom:1px solid #eee;vertical-align:top}td:first-child{width:56px;color:#0a4f5a;font-family:monospace}
+.assin{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:50px}.assin div{border-top:1px solid #111;padding-top:4px;text-align:center;color:#555}
+.rod{margin-top:26px;font-size:10px;color:#777}@media print{body{padding:0}.nao-imprimir{display:none}h2{break-after:avoid}}
+.nao-imprimir{position:fixed;top:12px;right:12px}.nao-imprimir button{font:600 13px Arial;padding:8px 14px;border-radius:6px;border:0;background:#00a9b8;color:#fff;cursor:pointer}
+</style></head><body>
+<div class="nao-imprimir"><button onclick="print()">Imprimir / salvar PDF</button></div>
+<div class="topo"><div><h1>Relatório do treinamento</h1><div>${esc(NOMES_FASE[info?.fase] || info?.titulo || '')}</div></div><div class="marca">XPTO<small>TREINAMENTO EM VR</small></div></div>
+<dl><dt>Aluno</dt><dd>${esc(aluno() || '—')}</dd><dt>Data</dt><dd>${new Date().toLocaleString('pt-BR')}</dd><dt>Modo</dt><dd>${esc(NOMES_MODO[e.modo] || e.modo || '—')}</dd>
+<dt>Ocorrência</dt><dd>${esc(e.ocorrencia?.titulo || '—')}</dd><dt>Variação</dt><dd>${vars || '—'}</dd><dt>Tempo</dt><dd>${r?.tempo || fmt(e.t)}</dd>
+${e.crise ? `<dt>Crise</dt><dd>tensão ${e.crise.tensao} · vínculo ${e.crise.vinculo}${e.crise.resultado ? ' · desfecho: ' + esc(e.crise.resultado) : ''}</dd>` : ''}</dl>
+${nota}
+<h2>Objetivos</h2>${Object.entries(grupos).map(([f, it]) => `<h3>${esc(f)}</h3><ul class="obj">${it.map(([id, a]) => `<li class="${feitos.has(id) ? 'ok' : ''}">${esc(a.texto)}${a.base ? ` <small>(${esc(a.base)})</small>` : ''}</li>`).join('')}</ul>`).join('') || '<p>—</p>'}
+<h2>Erros e falhas graves</h2>${erros.length ? `<ul>${erros.map(x => `<li class="${x.grave ? 'grave' : ''}">${x.grave ? 'FALHA GRAVE: ' : ''}${esc(x.texto)} (${x.pontos} pts, ${fmt(x.t)})${x.base ? ` — ${esc(x.base)}` : ''}</li>`).join('')}</ul>` : '<p>Nenhum erro registrado.</p>'}
+${(e.ocorrencia?.fatos || []).length ? `<h2>Fatos verificados</h2><ul>${e.ocorrencia.fatos.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+<h2>Linha do tempo</h2><table>${linha.map(i => `<tr><td>${fmt(i.t)}</td><td>${esc(i.texto)}</td></tr>`).join('') || '<tr><td></td><td>—</td></tr>'}</table>
+<h2>Observações do instrutor</h2>${notas.length ? `<table>${notas.map(n => `<tr><td>${fmt(n.t)}</td><td>${esc(n.texto)}</td></tr>`).join('')}</table>` : '<p>—</p>'}
+<div class="assin"><div>Instrutor</div><div>Aluno</div></div>
+<p class="rod">Gerado pela Estação do Instrutor · XPTO VR. Situação fictícia; conteúdo em validação com instrutores.</p>
+<script>setTimeout(()=>print(),400)<\/script></body></html>`;
+    const w = open('', '_blank'); if (!w) { alert('Permita janelas pop-up para gerar o relatório.'); return; }
+    w.document.write(html); w.document.close();
   };
 
   /* ---------- mapa ---------- */
@@ -174,14 +315,19 @@
     if (!pts.length) { g.fillStyle = '#56607a'; g.font = '14px Inter'; g.textAlign = 'center'; g.fillText('aguardando posição do aluno', W / 2, Hh / 2); return; }
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
     for (const [x, z] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
-    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, esc_ = Math.min(W / Math.max(16, x1 - x0 + 8), Hh / Math.max(12, z1 - z0 + 8));
-    const P = (x, z) => [W / 2 + (x - cx) * esc_, Hh / 2 + (z - cz) * esc_];
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, k = Math.min(W / Math.max(16, x1 - x0 + 8), Hh / Math.max(12, z1 - z0 + 8));
+    const P = (x, z) => [W / 2 + (x - cx) * k, Hh / 2 + (z - cz) * k];
     g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = 1;
-    const passo = 5 * esc_; for (let x = (W / 2 - cx * esc_) % passo; x < W; x += passo) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, Hh); g.stroke(); }
-    for (let y = (Hh / 2 - cz * esc_) % passo; y < Hh; y += passo) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    const passo = 5 * k; for (let x = (W / 2 - cx * k) % passo; x < W; x += passo) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, Hh); g.stroke(); }
+    for (let y = (Hh / 2 - cz * k) % passo; y < Hh; y += passo) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
     if (trajeto.length > 1) { g.strokeStyle = 'rgba(0,212,230,.35)'; g.lineWidth = 2; g.beginPath(); trajeto.forEach(([x, z], i) => { const [a, b] = P(x, z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); }
     g.font = '11px Inter'; g.textAlign = 'center';
-    for (const n of npcs) { const [a, b] = P(n.p[0], n.p[2]); g.fillStyle = '#ffb547'; g.beginPath(); g.arc(a, b, 4.5, 0, 7); g.fill(); g.fillStyle = 'rgba(255,217,160,.8)'; g.fillText(n.nome || '', a, b - 9); }
+    const rotulos = [];   // nomes que se sobrepoem ficam de fora (ex.: refens na mesma sala)
+    for (const n of npcs) {
+      const [a, b] = P(n.p[0], n.p[2]); g.fillStyle = '#ffb547'; g.beginPath(); g.arc(a, b, 4.5, 0, 7); g.fill();
+      if (rotulos.some(([x, y]) => Math.abs(x - a) < 70 && Math.abs(y - b) < 13)) continue;
+      rotulos.push([a, b]); g.fillStyle = 'rgba(255,217,160,.8)'; g.fillText(n.nome || '', a, b - 9);
+    }
     if (pose) {
       const [a, b] = P(pose.p[0], pose.p[2]); const [qx, qy, qz, qw] = pose.q;
       const yaw = Math.atan2(2 * (qw * qy + qx * qz), 1 - 2 * (qy * qy + qx * qx));
