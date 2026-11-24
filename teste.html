@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste pré-aula · XPTO VR</title>
+<meta name="description" content="Verifica, antes da aula, se a rede e o aparelho estão prontos para os treinamentos em realidade virtual.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05070f">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="teste.css">
+</head>
+<body class="pagina-teste">
+
+<header class="t-topo">
+  <a class="marca" href="./" aria-label="Voltar ao portal">
+    <img src="img/logo-xpto.png" alt="XPTO inc." width="110" height="27">
+    <span class="marca-vr">VR</span>
+  </a>
+  <span class="t-titulo">Teste pré-aula</span>
+</header>
+
+<main class="t-main">
+  <section class="t-intro">
+    <p class="sobretitulo"><span class="ponto"></span>Antes da aula</p>
+    <h1>Tudo pronto para treinar?</h1>
+    <p class="t-lead">Abra esta página <b>no local da aula</b>, na mesma rede Wi-Fi, em cada aparelho: no <b>Meta Quest</b> e no <b>computador do instrutor</b>. O teste leva menos de um minuto e não muda nada nos treinamentos.</p>
+    <div class="t-aparelho" id="aparelho"></div>
+    <button class="btn btn-prim t-iniciar" id="iniciar" type="button">▶ Iniciar teste</button>
+  </section>
+
+  <section class="t-resumo" id="resumo" hidden aria-live="polite">
+    <div class="t-selo" id="selo"></div>
+    <div>
+      <h2 id="resumoTitulo"></h2>
+      <p id="resumoTexto"></p>
+    </div>
+  </section>
+
+  <ol class="t-lista" id="lista"></ol>
+
+  <div class="t-acoes" id="acoes" hidden>
+    <button class="btn btn-sec" id="copiar" type="button">Copiar resultado</button>
+    <button class="btn btn-sec" id="repetir" type="button">Testar de novo</button>
+  </div>
+
+  <p class="t-nota">Nada é guardado nem enviado: o teste só tenta abrir os sites e mede a conexão. O resultado fica só nesta tela.</p>
+</main>
+
+<script src="dados.js"></script>
+<script src="teste.js"></script>
+</body>
+</html>

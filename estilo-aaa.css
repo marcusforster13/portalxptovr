@@ -137,3 +137,7 @@ body.pronto .linha>span{transform:none}
 /* botão de monitoramento */
 .btn-mon{background:rgba(255,90,90,.08);border-color:rgba(255,90,90,.4);color:#ff9a9a}
 .btn-mon:hover{border-color:#ff5a5a;color:#ffc4c4}
+
+/* aviso do teste pre-aula */
+.pre-aula{margin:-1.6rem 0 2.4rem;padding:1rem 1.2rem;border-radius:14px;border:1px solid rgba(0,212,230,.3);background:rgba(0,212,230,.06);color:#c3cbdb}
+.pre-aula a{color:var(--ciano2);font-weight:600}
