@@ -114,3 +114,30 @@ body.estacao{min-height:100vh;background:radial-gradient(ellipse at 20% -10%,rgb
   .e-linha{grid-template-columns:1fr}
 }
 @media (max-width:600px){.e-titulo{display:none}}
+
+/* controles do instrutor */
+.controles-e{border-color:rgba(0,212,230,.3)}
+.campo{display:grid;gap:.35rem;font:500 .7rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--suave);margin-bottom:.7rem}
+.campo select,.vars select{font:500 .9rem var(--f-txt);letter-spacing:0;text-transform:none;color:var(--texto);background:#0a1020;border:1px solid var(--linha);border-radius:10px;padding:.55rem .7rem;width:100%}
+.campo select:focus,.vars select:focus{outline:none;border-color:var(--ciano)}
+.vars{display:grid;gap:.55rem;margin-bottom:.9rem}
+.vars label{display:grid;gap:.3rem;font:500 .68rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:#ffd9a0}
+.ctl-nota{font-size:.76rem;color:#6d7890;margin:.6rem 0 0}
+.ctl-linha{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.ctl-linha .btn{justify-content:center;padding:.75em .8em}
+.btn-perigo{background:rgba(255,90,90,.12);border-color:rgba(255,90,90,.5);color:#ff9a9a}
+.btn-perigo:hover{background:rgba(255,90,90,.22);border-color:var(--verm)}
+#cPausa.pausado{background:var(--ambar);color:#1a1000;box-shadow:0 8px 30px -8px rgba(255,181,71,.7)}
+.ctl-sub{font:600 .68rem var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--suave);margin:1rem 0 .5rem}
+.eventos{display:grid;gap:.4rem}
+.eventos button{text-align:left;font-size:.85rem;padding:.6rem .8rem;border-radius:10px;background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.3);color:#ffd9a0}
+.eventos button:hover:not(:disabled){background:rgba(255,181,71,.16)}
+.eventos button:disabled{opacity:.4;cursor:not-allowed}
+.eventos small{display:block;color:var(--suave);font-size:.72rem;margin-top:.15rem}
+.como{display:flex;gap:.3rem;margin-bottom:.6rem;padding:.25rem;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--linha)}
+.como button{flex:1;background:none;border:0;padding:.4rem;border-radius:7px;font-size:.8rem;font-weight:600;color:var(--suave)}
+.como button.ativo{background:rgba(0,212,230,.18);color:var(--ciano2)}
+#hudPausa{color:#1a1000;background:var(--ambar)!important;border-color:var(--ambar)!important}
+.vista-pausa{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:.4rem;background:rgba(2,4,10,.55);backdrop-filter:blur(2px);pointer-events:none}
+.vista-pausa b{font:700 1.6rem var(--f-tit);letter-spacing:.1em;color:var(--ambar)}
+.vista-pausa span{font-size:.9rem;color:#c3cbdb}

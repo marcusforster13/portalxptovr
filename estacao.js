@@ -63,7 +63,7 @@
           origemEsp = u.origin; u.searchParams.set('espectador', '1'); iframePronto = false;
           $('#vistaCarregando').classList.remove('some'); ifr.src = u.href;
         }
-        montarObjetivos();
+        montarObjetivos(); montarControles();
         break;
       }
       case 'pose':
@@ -72,8 +72,8 @@
         { const u = trajeto[trajeto.length - 1]; if (!u || Math.hypot(u[0] - m.p[0], u[1] - m.p[2]) > .35) { trajeto.push([m.p[0], m.p[2]]); if (trajeto.length > 4000) trajeto.shift(); } }
         break;
       case 'npcs': npcs = m.lista || []; paraIframe(m); break;
-      case 'relogio': if (m.t != null) { tAtual = m.t; tRelogio = performance.now(); } else if (!m.ativo) tRelogio = 0; break;
-      case 'estado': est = m; tAtual = m.t; tRelogio = m.ativo ? performance.now() : 0; desenharEstado(); break;
+      case 'relogio': if (m.t != null) { tAtual = m.t; tRelogio = m.pausado ? 0 : performance.now(); } else if (!m.ativo) tRelogio = 0; controlesEstado(m); break;
+      case 'estado': est = m; tAtual = m.t; tRelogio = m.ativo && !m.pausado ? performance.now() : 0; desenharEstado(); controlesEstado(m); break;
     }
   }
 
@@ -118,10 +118,41 @@
   $('#rapidas').innerHTML = RAPIDAS.map(t => `<button type="button">${esc(t)}</button>`).join('');
   $('#rapidas').onclick = e => { const b = e.target.closest('button'); if (b) enviarMsg(b.textContent); };
   $('#formMsg').addEventListener('submit', e => { e.preventDefault(); const v = $('#msg').value.trim(); if (v) { enviarMsg(v); $('#msg').value = ''; } });
+  let como = 'instrutor';
+  document.querySelectorAll('.como button').forEach(b => b.onclick = () => { como = b.dataset.como; document.querySelectorAll('.como button').forEach(x => x.classList.toggle('ativo', x === b)); });
   function enviarMsg(texto) {
     if (!conn?.open) return;
-    conn.send({ tipo: 'mensagem', texto });
-    const t = tempoTreino(); mensagens.push({ t, texto }); linhaLocal.push({ t, texto: 'Instrutor: ' + texto, cls: 'instrutor' }); desenharLinha();
+    conn.send({ tipo: 'mensagem', texto, como });
+    const t = tempoTreino(); mensagens.push({ t, texto, como }); marcar((como === 'central' ? 'Central (rádio): ' : 'Instrutor: ') + texto);
+  }
+  const marcar = texto => { linhaLocal.push({ t: tempoTreino(), texto, cls: 'instrutor' }); desenharLinha(); };
+
+  /* ---------- controles do instrutor ---------- */
+  const cmd = m => conn?.open && conn.send({ tipo: 'comando', ...m });
+  let ctl = { ativo: false, pausado: false }, ultEventos = '';
+  function montarControles() {
+    $('#cModo').innerHTML = (info.modos || []).map(([k, n]) => `<option value="${esc(k)}"${k === 'treino' ? ' selected' : ''}>${esc(n)}</option>`).join('');
+    $('#cVars').innerHTML = Object.entries(info.variacoes || {}).map(([k, ops]) => `<label>${esc(k)}<select data-var="${esc(k)}"><option value="">Sortear</option>${ops.map(o => `<option value="${esc(o)}">${esc(nomeVar(k, o))}</option>`).join('')}</select></label>`).join('');
+    $('#controles').hidden = !(info.modos || []).length;
+  }
+  $('#cIniciar').onclick = () => {
+    const variacao = {}; document.querySelectorAll('#cVars select').forEach(s => { if (s.value) variacao[s.dataset.var] = s.value; });
+    cmd({ acao: 'iniciar', modo: $('#cModo').value, variacao });
+    marcar(`Instrutor iniciou o treino (${$('#cModo').selectedOptions[0]?.textContent || ''}${Object.keys(variacao).length ? ', variação escolhida' : ', variação sorteada'}).`);
+  };
+  $('#cPausa').onclick = () => { cmd({ acao: ctl.pausado ? 'retomar' : 'pausar' }); marcar(ctl.pausado ? 'Instrutor retomou o treino.' : 'Instrutor pausou o treino.'); };
+  $('#cEncerrar').onclick = () => { if (confirm('Encerrar o treino agora? O óculos mostra o relatório final ao aluno.')) { cmd({ acao: 'encerrar' }); marcar('Instrutor encerrou o treino.'); } };
+  $('#cEventos').onclick = e => {
+    const b = e.target.closest('button[data-ev]'); if (!b || b.disabled) return;
+    if (b.dataset.ev === 'disparos' && !confirm('Antecipar a ameaça? Os disparos acontecem agora no corredor.')) return;
+    cmd({ acao: 'evento', id: b.dataset.ev }); marcar('Instrutor disparou o evento: ' + b.querySelector('b').textContent + '.');
+  };
+  function controlesEstado(m) {
+    ctl = { ativo: !!m.ativo, pausado: !!m.pausado };
+    $('#ctlInicio').hidden = ctl.ativo; $('#ctlAtivo').hidden = !ctl.ativo;
+    const bp = $('#cPausa'); bp.textContent = ctl.pausado ? '▶ Retomar' : '⏸ Pausar'; bp.classList.toggle('pausado', ctl.pausado);
+    $('#hudPausa').hidden = !ctl.pausado; $('#vistaPausa').hidden = !ctl.pausado;
+    const chave = JSON.stringify(m.eventos || null); if (m.eventos && chave !== ultEventos) ultEventos = chave, $('#cEventos').innerHTML = m.eventos.map(ev => `<button type="button" data-ev="${esc(ev.id)}"${ev.ok ? '' : ' disabled'}><b>${esc(ev.label)}</b>${!ev.ok && ev.so ? `<small>${esc(ev.so)}</small>` : ''}</button>`).join('');
   }
   $('#formNota').addEventListener('submit', e => {
     e.preventDefault(); const v = $('#nota').value.trim(); if (!v) return;
@@ -129,7 +160,7 @@
     $('#notas').innerHTML = notas.map(n => `<li><time>${fmt(n.t)}</time>${esc(n.texto)}</li>`).join('');
   });
   $('#baixar').onclick = () => {
-    const dados = { fase: info?.fase, codigo, exportado: new Date().toISOString(), estado: est, relatorio: est?.relatorio || null, notas_do_instrutor: notas, mensagens_enviadas: mensagens, trajeto };
+    const dados = { fase: info?.fase, codigo, exportado: new Date().toISOString(), estado: est, relatorio: est?.relatorio || null, notas_do_instrutor: notas, mensagens_enviadas: mensagens, acoes_do_instrutor: linhaLocal, trajeto };
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' }));
     a.download = `sessao_${info?.fase || 'treino'}_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`; a.click();
   };

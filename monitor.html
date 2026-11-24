@@ -51,11 +51,13 @@
   <section class="e-centro">
     <div class="vista">
       <iframe id="espectador" title="Visão do aluno" allow="autoplay; xr-spatial-tracking"></iframe>
+      <div class="vista-pausa" id="vistaPausa" hidden><b>TREINO PAUSADO</b><span>O aluno vê o aviso no óculos e fica parado.</span></div>
       <div class="vista-carregando" id="vistaCarregando"><div class="ab-barra"><span></span></div><p>Carregando o cenário…</p></div>
       <div class="vista-hud">
         <span class="rec"><i></i>AO VIVO</span>
         <span id="hudVR">NAVEGADOR</span>
         <span id="hudArma" hidden>ARMA EM PUNHO</span>
+        <span id="hudPausa" hidden>⏸ PAUSADO</span>
       </div>
       <div class="vista-botoes" role="group" aria-label="Câmera">
         <button class="vb ativo" data-vista="aluno">Visão do aluno</button>
@@ -86,6 +88,24 @@
       </dl>
     </div>
 
+    <div class="cartao-e controles-e" id="controles">
+      <h2>Controles do instrutor</h2>
+      <div id="ctlInicio">
+        <label class="campo">Modo<select id="cModo"></select></label>
+        <div id="cVars" class="vars"></div>
+        <button class="btn btn-prim largo" id="cIniciar" type="button">▶ Iniciar no óculos</button>
+        <p class="ctl-nota">Escolha a variação ou deixe em “Sortear”. O aluno não vê qual foi escolhida.</p>
+      </div>
+      <div id="ctlAtivo" hidden>
+        <div class="ctl-linha">
+          <button class="btn btn-prim" id="cPausa" type="button">⏸ Pausar</button>
+          <button class="btn btn-perigo" id="cEncerrar" type="button">■ Encerrar</button>
+        </div>
+        <h3 class="ctl-sub">Eventos</h3>
+        <div id="cEventos" class="eventos"></div>
+      </div>
+    </div>
+
     <div class="cartao-e secreto">
       <h2>Variação sorteada <small>só o instrutor vê</small></h2>
       <ul class="chips" id="sVar"><li class="vazio">definida quando o treino começa</li></ul>
@@ -103,6 +123,10 @@
 
     <div class="cartao-e">
       <h2>Mensagem para o óculos</h2>
+      <div class="como" role="group" aria-label="Falar como">
+        <button type="button" class="ativo" data-como="instrutor">Instrutor</button>
+        <button type="button" data-como="central">Central (rádio)</button>
+      </div>
       <form id="formMsg" class="msg">
         <input id="msg" maxlength="200" placeholder="Aparece como legenda para o aluno">
         <button class="btn btn-prim" type="submit">Enviar</button>
