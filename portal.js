@@ -3,7 +3,8 @@
   const $ = s => document.querySelector(s);
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const img = (id, i, sm) => `img/${id}-${i}${sm ? '-sm' : ''}.webp`;
+  const VERSAO = '20261124';   // troque ao substituir fotos ou vídeos (o cache guarda por 7 dias)
+  const img = (id, i, sm) => `img/${id}-${i}${sm ? '-sm' : ''}.webp?v=${VERSAO}`;
   const icone = p => p === 'Noite'
     ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="#9fb3ff"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>'
     : '<svg width="12" height="12" viewBox="0 0 24 24" fill="#ffc861"><circle cx="12" cy="12" r="5"/></svg>';
@@ -18,12 +19,12 @@
   const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const DUR = 8000;               // os clipes têm 8 s
   const celular = innerWidth < 820;
-  const vid = (id, sm) => `video/${id}${sm ? '-sm' : ''}.mp4`;
+  const vid = (id, sm) => `video/${id}${sm ? '-sm' : ''}.mp4?v=${VERSAO}`;
   let atual = -1, timer;
   F.forEach((f, i) => {
     const v = el('video'); v.muted = true; v.playsInline = true; v.loop = true; v.preload = 'none';
     v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
-    v.poster = `video/${f.id}-capa.webp`;
+    v.poster = `video/${f.id}-capa.webp?v=${VERSAO}`;
     v.dataset.src = vid(f.id, celular);
     fundo.append(v);
     const b = el('button', 'trilha-it', `<b>${esc(f.titulo)}</b>${esc(f.tema)}`);
