@@ -3,8 +3,11 @@
   const $ = s => document.querySelector(s);
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const VERSAO = '20261124d';   // troque ao substituir fotos ou vídeos (o cache guarda por 7 dias)
-  const img = (id, i, sm) => `img/${id}-${i}${sm ? '-sm' : ''}.webp?v=${VERSAO}`;
+  const VERSAO = '20261125a';   // troque ao substituir fotos ou vídeos (o cache guarda por 7 dias)
+  const img = (id, i, t) => `img/${id}-${i}${t === 'hd' ? '-hd' : t ? '-sm' : ''}.webp?v=${VERSAO}`;
+  // 800, 1600 e 1920 px: o navegador escolhe pela tela. A foto do cartao preenche um quadro mais alto que 16:9, entao ocupa ~1180 px de largura
+  const fontes = (id, i) => `${img(id, i, true)} 800w, ${img(id, i)} 1600w, ${img(id, i, 'hd')} 1920w`;
+  const TAM_CARTAO = '(max-width:900px) 112vw, 1180px';
   const icone = p => p === 'Noite'
     ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="#9fb3ff"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>'
     : '<svg width="12" height="12" viewBox="0 0 24 24" fill="#ffc861"><circle cx="12" cy="12" r="5"/></svg>';
@@ -59,7 +62,7 @@
       <div class="fase-img" data-abrir="${f.id}" role="button" tabindex="0" aria-label="Detalhes de ${esc(f.titulo)}">
         <span class="fase-n">FASE ${f.n}</span>
         <span class="fase-periodo">${icone(f.periodo)}${f.periodo.toUpperCase()}</span>
-        <img class="principal" src="${img(f.id, 0, true)}" srcset="${img(f.id, 0, true)} 800w, ${img(f.id, 0)} 1600w" sizes="(max-width:900px) 100vw, 760px" alt="${esc(f.titulo)}: ${esc(f.local)}" loading="lazy" decoding="async">
+        <img class="principal" src="${img(f.id, 0, true)}" srcset="${fontes(f.id, 0)}" sizes="${TAM_CARTAO}" alt="${esc(f.titulo)}: ${esc(f.local)}" loading="lazy" decoding="async">
         <video class="previa" muted playsinline loop preload="none" aria-hidden="true" data-src="${vid(f.id, celular)}"></video>
         <span class="brilho"></span>
         <span class="cantos"><i></i><i></i><i></i><i></i></span>
@@ -84,7 +87,7 @@
   const trocaFoto = b => {
     const card = b.closest('.fase'), f = F.find(x => x.id === card.querySelector('[data-abrir]').dataset.abrir), k = +b.dataset.foto;
     const pr = card.querySelector('.principal');
-    pr.srcset = `${img(f.id, k, true)} 800w, ${img(f.id, k)} 1600w`; pr.src = img(f.id, k, true);
+    pr.srcset = fontes(f.id, k); pr.src = img(f.id, k);
     card.querySelectorAll('.minis button').forEach(x => x.classList.toggle('ativa', x === b));
   };
   lista.addEventListener('mouseover', e => { const b = e.target.closest('.minis button'); if (b) trocaFoto(b); });
@@ -135,7 +138,7 @@
   const N_FOTOS = 5;
   function setFoto(i) {
     foto = (i + N_FOTOS) % N_FOTOS;
-    $('#pFoto').src = img(fAtual.id, foto, innerWidth < 820);
+    const pf = $('#pFoto'); pf.sizes = '(max-width:820px) 100vw, 1080px'; pf.srcset = fontes(fAtual.id, foto); pf.src = img(fAtual.id, foto);
     $('#pMinis').querySelectorAll('button').forEach((b, k) => b.classList.toggle('ativa', k === foto));
   }
   const lis = arr => arr.map(x => `<li>${esc(x)}</li>`).join('');
